@@ -1,19 +1,99 @@
 export const runtime = "nodejs";
 
-import PDFDocument from "pdfkit";
+function escapePdfText(text: string) {
+  return text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
 
-function toBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    doc.on("data", (c) => chunks.push(c));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-    doc.end();
-  });
+function buildSimplePdf(lines: string[]) {
+  // Basic one-page PDF using built-in Helvetica (no external libs).
+  const safeLines = lines.map((l) => escapePdfText(String(l ?? "")));
+
+  const contentParts: string[] = [];
+  contentParts.push("BT");
+  contentParts.push("/F1 12 Tf");
+  contentParts.push("14 TL"); // line spacing
+  contentParts.push("72 740 Td"); // start position
+
+  for (const line of safeLines) {
+    contentParts.push(`(${line}) Tj`);
+    contentParts.push("T*");
+  }
+
+  contentParts.push("ET");
+
+  const contentStream = contentParts.join("\n") + "\n";
+  const contentLength = Buffer.byteLength(contentStream, "utf8");
+
+  const objects: string[] = [];
+
+  // 1: Catalog
+  objects.push(`1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+`);
+
+  // 2: Pages
+  objects.push(`2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+`);
+
+  // 3: Page
+  objects.push(`3 0 obj
+<< /Type /Page
+   /Parent 2 0 R
+   /MediaBox [0 0 612 792]
+   /Contents 4 0 R
+   /Resources << /Font << /F1 5 0 R >> >>
+>>
+endobj
+`);
+
+  // 4: Contents
+  objects.push(`4 0 obj
+<< /Length ${contentLength} >>
+stream
+${contentStream}endstream
+endobj
+`);
+
+  // 5: Font
+  objects.push(`5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+`);
+
+  // Build PDF with xref offsets
+  let pdf = "%PDF-1.4\n";
+  const offsets: number[] = [0]; // xref requires object 0
+
+  for (const obj of objects) {
+    offsets.push(Buffer.byteLength(pdf, "utf8"));
+    pdf += obj;
+  }
+
+  const xrefStart = Buffer.byteLength(pdf, "utf8");
+  pdf += "xref\n";
+  pdf += `0 ${objects.length + 1}\n`;
+  pdf += "0000000000 65535 f \n";
+
+  for (let i = 1; i <= objects.length; i++) {
+    const off = offsets[i];
+    pdf += `${String(off).padStart(10, "0")} 00000 n \n`;
+  }
+
+  pdf += `trailer
+<< /Size ${objects.length + 1} /Root 1 0 R >>
+startxref
+${xrefStart}
+%%EOF
+`;
+
+  return Buffer.from(pdf, "utf8");
 }
 
 export async function POST(req: Request) {
-  const data = await req.json();
+  const data = await req.json().catch(() => ({}));
 
   const b = data?.business ?? {};
   const s = data?.summary ?? {};
@@ -25,72 +105,41 @@ export async function POST(req: Request) {
   const city = String(b?.city ?? "");
   const website = String(b?.website ?? "");
   const category = String(b?.category ?? "");
-  const score = Number(s?.score ?? 0);
+  const score = String(s?.score ?? "");
   const headline = String(s?.headline ?? "Monthly Summary");
 
-  // Build PDF
-  const doc = new PDFDocument({ size: "LETTER", margin: 54 });
+  const lines: string[] = [
+    "LocalBoost Monthly Report",
+    "------------------------",
+    `Business: ${name}`,
+    `Category: ${category}`,
+    `City: ${city}`,
+    `Website: ${website}`,
+    "",
+    `Score: ${score}/100`,
+    `Summary: ${headline}`,
+    "",
+    "Top Issues:",
+    ...issues.slice(0, 6).flatMap((x: any, i: number) => {
+      const title = String(x?.title ?? `Issue ${i + 1}`);
+      const severity = String(x?.severity ?? "Medium");
+      const why = String(x?.why ?? "");
+      const fix = String(x?.fix ?? "");
+      return [
+        `${i + 1}. ${title} (${severity})`,
+        `   Why: ${why}`,
+        `   Fix: ${fix}`,
+        ""
+      ];
+    }),
+    "Wins This Month:",
+    ...(wins.length ? wins.map((w: string) => `- ${w}`) : ["- (none yet)"]),
+    "",
+    "Next Steps:",
+    ...(nextSteps.length ? nextSteps.map((n: string) => `- ${n}`) : ["- (none yet)"])
+  ];
 
-  // Header
-  doc.fontSize(20).text("LocalBoost Monthly Report", { align: "left" });
-  doc.moveDown(0.5);
-  doc.fontSize(12).fillColor("#444").text(`${name} • ${category}`, { align: "left" });
-  doc.text(`${city}`, { align: "left" });
-  doc.text(`${website}`, { align: "left" });
-  doc.fillColor("#000");
-  doc.moveDown();
-
-  // Score box
-  doc.fontSize(14).text("Overall Score");
-  doc.moveDown(0.3);
-  doc.fontSize(12).text(`Score: ${score}/100`);
-  doc.text(headline);
-  doc.moveDown();
-
-  // Issues
-  doc.fontSize(14).text("Top Issues");
-  doc.moveDown(0.4);
-
-  issues.slice(0, 6).forEach((x: any, idx: number) => {
-    const title = String(x?.title ?? `Issue ${idx + 1}`);
-    const severity = String(x?.severity ?? "Medium");
-    const why = String(x?.why ?? "");
-    const fix = String(x?.fix ?? "");
-
-    doc.fontSize(12).text(`${idx + 1}. ${title} (${severity})`);
-    if (why) doc.fillColor("#444").text(`Why: ${why}`);
-    if (fix) doc.fillColor("#444").text(`Fix: ${fix}`);
-    doc.fillColor("#000").moveDown(0.6);
-  });
-
-  // Wins
-  doc.addPage();
-  doc.fontSize(14).text("Wins This Month");
-  doc.moveDown(0.4);
-  if (wins.length === 0) {
-    doc.fontSize(12).fillColor("#444").text("No wins recorded yet.");
-    doc.fillColor("#000");
-  } else {
-    wins.forEach((w: string) => {
-      doc.fontSize(12).text(`• ${w}`);
-    });
-  }
-
-  doc.moveDown(1.2);
-
-  // Next steps
-  doc.fontSize(14).text("Next Steps");
-  doc.moveDown(0.4);
-  if (nextSteps.length === 0) {
-    doc.fontSize(12).fillColor("#444").text("No next steps recorded yet.");
-    doc.fillColor("#000");
-  } else {
-    nextSteps.forEach((n: string) => {
-      doc.fontSize(12).text(`• ${n}`);
-    });
-  }
-
-  const pdfBuffer = await toBuffer(doc);
+  const pdfBuffer = buildSimplePdf(lines);
 
   return new Response(pdfBuffer, {
     headers: {
