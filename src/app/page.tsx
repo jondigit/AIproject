@@ -26,11 +26,11 @@ export default function Home() {
 
   const score = result?.summary?.score ?? null;
 
-  const scoreBand = useMemo(() => {
-    if (score == null) return { label: "", color: "#94a3b8", bg: "rgba(148,163,184,0.12)" };
-    if (score >= 80) return { label: "Strong", color: "#16a34a", bg: "rgba(34,197,94,0.14)" };
-    if (score >= 60) return { label: "Good", color: "#d97706", bg: "rgba(245,158,11,0.14)" };
-    return { label: "Needs Attention", color: "#dc2626", bg: "rgba(239,68,68,0.12)" };
+  const scoreLabel = useMemo(() => {
+    if (score == null) return "No scan yet";
+    if (score >= 80) return "Strong";
+    if (score >= 60) return "Good";
+    return "Needs work";
   }, [score]);
 
   async function runScan() {
@@ -47,8 +47,7 @@ export default function Home() {
       const text = await res.text();
       if (!res.ok) throw new Error(`Scan failed (${res.status}). ${text.slice(0, 200)}`);
 
-      const data = JSON.parse(text) as ScanResult;
-      setResult(data);
+      setResult(JSON.parse(text) as ScanResult);
     } catch (e: any) {
       setError(e?.message ?? "Unknown error");
       setResult(null);
@@ -87,167 +86,142 @@ export default function Home() {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.shell}>
-        <Topbar />
+    <div style={s.page}>
+      <div style={s.container}>
+        <TopNav />
 
-        <div style={styles.layout}>
-          <div style={styles.panel}>
-            <div style={styles.panelHeader}>
+        <header style={s.hero}>
+          <div>
+            <div style={s.kicker}>Local SEO + operations assistant</div>
+            <h1 style={s.h1}>LocalBoost</h1>
+            <p style={s.sub}>
+              Run a scan to generate a client-ready action plan: priority issues, copy-ready SEO updates,
+              Google Business actions, review replies, and a downloadable monthly PDF report.
+            </p>
+          </div>
+
+          <div style={s.heroRight}>
+            <div style={s.heroCard}>
+              <div style={s.heroCardLabel}>Overall Score</div>
+              <div style={s.heroScore}>{score == null ? "—" : `${score}/100`}</div>
+              <div style={s.heroScoreSub}>{scoreLabel}</div>
+              <div style={s.heroHint}>Use the form below to run a scan.</div>
+            </div>
+
+            <div style={s.heroCard}>
+              <div style={s.heroCardLabel}>What clients get</div>
+              <ul style={s.cleanList}>
+                <li>Prioritized issues and fixes</li>
+                <li>SEO titles, meta descriptions, H1 suggestions</li>
+                <li>Google Business checklist and post drafts</li>
+                <li>Review reply templates</li>
+                <li>Monthly PDF report</li>
+              </ul>
+            </div>
+          </div>
+        </header>
+
+        <main style={s.grid}>
+          <section style={s.card}>
+            <div style={s.cardHeader}>
               <div>
-                <div style={styles.panelTitle}>Client Details</div>
-                <div style={styles.panelSub}>Run a scan to generate a structured action plan.</div>
+                <div style={s.cardTitle}>Run Scan</div>
+                <div style={s.cardSub}>Enter business details and generate a report.</div>
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+            <div style={s.form}>
               <Field label="Business Name" value={name} onChange={setName} placeholder="Example: Bright Smile Dental" />
               <Field label="Website" value={website} onChange={setWebsite} placeholder="https://..." />
               <Field label="City" value={city} onChange={setCity} placeholder="Austin, TX" />
               <Field label="Category" value={category} onChange={setCategory} placeholder="Dentist, Plumber, Restaurant..." />
 
-              <button
-                onClick={runScan}
-                disabled={loading}
-                style={{ ...styles.primary, opacity: loading ? 0.75 : 1 }}
-              >
-                {loading ? "Running Scan..." : "Run Scan"}
+              <button onClick={runScan} disabled={loading} style={{ ...s.primaryBtn, opacity: loading ? 0.75 : 1 }}>
+                {loading ? "Running…" : "Run Scan"}
               </button>
 
               <button
                 onClick={downloadReport}
                 disabled={!result}
-                style={{
-                  ...styles.secondary,
-                  opacity: result ? 1 : 0.55,
-                  cursor: result ? "pointer" : "not-allowed",
-                }}
+                style={{ ...s.secondaryBtn, opacity: result ? 1 : 0.5, cursor: result ? "pointer" : "not-allowed" }}
               >
                 Download Monthly Report (PDF)
               </button>
 
               {error && (
-                <div style={styles.alert}>
-                  <div style={styles.alertTitle}>Request failed</div>
-                  <div style={styles.alertBody}>{error}</div>
+                <div style={s.alert}>
+                  <div style={s.alertTitle}>Request failed</div>
+                  <div style={s.alertBody}>{error}</div>
                 </div>
               )}
 
-              <div style={styles.note}>
-                This demo returns a simulated analysis. The production version will connect real crawling, local keyword
-                data, and approval-based changes.
+              <div style={s.note}>
+                Demo note: this MVP currently returns simulated recommendations. The production version will connect real
+                crawling and live local keyword data.
               </div>
             </div>
-          </div>
+          </section>
 
-          <div style={styles.main}>
-            <div style={styles.card}>
-              <div style={styles.cardHeader}>
+          <section style={s.rightCol}>
+            <div style={s.card}>
+              <div style={s.cardHeaderRow}>
                 <div>
-                  <div style={styles.cardTitle}>Overview</div>
-                  <div style={styles.cardSub}>A concise summary with clear next actions.</div>
+                  <div style={s.cardTitle}>Results</div>
+                  <div style={s.cardSub}>Clear, client-readable output.</div>
                 </div>
-
-                {result && score != null ? (
-                  <div style={{ ...styles.scorePill, color: scoreBand.color, background: scoreBand.bg }}>
-                    {score}/100 • {scoreBand.label}
-                  </div>
-                ) : (
-                  <div style={styles.scorePillMuted}>No scan yet</div>
-                )}
+                <div style={s.scoreChip}>
+                  <div style={s.scoreChipTop}>Overall</div>
+                  <div style={s.scoreChipVal}>{score == null ? "—" : `${score}/100`}</div>
+                </div>
               </div>
 
               {!result ? (
-                <div style={styles.empty}>
-                  <div style={styles.emptyTitle}>Run a scan to generate results</div>
-                  <div style={styles.emptySub}>
-                    You will receive prioritized issues, copy-ready SEO updates, Google Business actions, and review
-                    reply templates.
-                  </div>
-                </div>
+                <Empty />
               ) : (
                 <>
-                  <div style={styles.summaryGrid}>
-                    <div style={styles.summaryCard}>
-                      <div style={styles.kicker}>Business</div>
-                      <div style={styles.bigText}>{result.business.name}</div>
-                      <div style={styles.muted}>{result.business.city}</div>
-                      <div style={styles.muted}>{result.business.category}</div>
-                      <div style={{ marginTop: 10, ...styles.muted }}>{result.business.website}</div>
-                    </div>
+                  <div style={s.summaryRow}>
+                    <Mini title="Business" value={result.business.name} />
+                    <Mini title="Location" value={result.business.city} />
+                    <Mini title="Category" value={result.business.category} />
+                  </div>
 
-                    <div style={styles.summaryCard}>
-                      <div style={styles.kicker}>Summary</div>
-                      <div style={styles.bigText}>{result.summary.headline}</div>
-                      <ul style={styles.list}>
+                  <Section title="Executive Summary">
+                    <div style={s.execBox}>
+                      <div style={s.execHeadline}>{result.summary.headline}</div>
+                      <ul style={s.notes}>
                         {result.summary.notes.map((n, i) => (
-                          <li key={i} style={styles.listItem}>
-                            {n}
-                          </li>
+                          <li key={i} style={s.noteItem}>{n}</li>
                         ))}
                       </ul>
                     </div>
-
-                    <div style={styles.summaryCard}>
-                      <div style={styles.kicker}>Next 30 Days</div>
-                      <div style={styles.bigText}>Recommended focus</div>
-                      <ol style={styles.list}>
-                        {result.monthly.nextSteps.map((n, i) => (
-                          <li key={i} style={styles.listItem}>
-                            {n}
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  </div>
+                  </Section>
 
                   <Section title="Issues Found" subtitle="Prioritized by impact">
-                    <div style={{ display: "grid", gap: 10 }}>
+                    <div style={{ display: "grid", gap: 12 }}>
                       {result.issues.map((x, i) => (
-                        <div key={i} style={styles.row}>
-                          <div style={styles.rowTop}>
-                            <div style={styles.rowTitle}>{x.title}</div>
-                            <span style={badgeStyle(x.severity)}>{x.severity}</span>
+                        <div key={i} style={s.row}>
+                          <div style={s.rowTop}>
+                            <div style={s.rowTitle}>{x.title}</div>
+                            <span style={severityBadge(x.severity)}>{x.severity}</span>
                           </div>
-                          <div style={styles.rowBody}>
-                            <div>
-                              <span style={styles.rowLabel}>Why:</span> {x.why}
-                            </div>
-                            <div style={{ marginTop: 6 }}>
-                              <span style={styles.rowLabel}>Fix:</span> {x.fix}
-                            </div>
-                          </div>
+                          <div style={s.rowText}><b>Why:</b> {x.why}</div>
+                          <div style={s.rowText}><b>Fix:</b> {x.fix}</div>
                         </div>
                       ))}
                     </div>
                   </Section>
 
-                  <Section title="Recommended SEO Updates" subtitle="Copy-ready suggestions">
-                    <div style={styles.twoCol}>
+                  <Section title="SEO Updates" subtitle="Copy-ready suggestions">
+                    <div style={s.twoCol}>
                       {result.seoFixes.map((x, i) => (
-                        <div key={i} style={styles.row}>
-                          <div style={styles.kicker}>{x.page}</div>
-
-                          <div style={styles.kv}>
-                            <div style={styles.k}>Title</div>
-                            <div style={styles.v}>{x.title}</div>
-                          </div>
-
-                          <div style={styles.kv}>
-                            <div style={styles.k}>Meta</div>
-                            <div style={styles.v}>{x.meta}</div>
-                          </div>
-
-                          <div style={styles.kv}>
-                            <div style={styles.k}>H1</div>
-                            <div style={styles.v}>{x.h1}</div>
-                          </div>
-
-                          <div style={styles.tags}>
+                        <div key={i} style={s.row}>
+                          <div style={s.smallKicker}>{x.page}</div>
+                          <KV k="Title" v={x.title} />
+                          <KV k="Meta" v={x.meta} />
+                          <KV k="H1" v={x.h1} />
+                          <div style={s.tags}>
                             {x.keywords.map((kw, idx) => (
-                              <span key={idx} style={styles.tag}>
-                                {kw}
-                              </span>
+                              <span key={idx} style={s.tag}>{kw}</span>
                             ))}
                           </div>
                         </div>
@@ -256,26 +230,26 @@ export default function Home() {
                   </Section>
 
                   <Section title="Google Business Profile" subtitle="Local visibility actions">
-                    <div style={styles.twoCol}>
-                      <div style={styles.row}>
-                        <div style={styles.rowTitle}>Checklist</div>
-                        <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+                    <div style={s.twoCol}>
+                      <div style={s.row}>
+                        <div style={s.rowTitle}>Checklist</div>
+                        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
                           {result.gmb.actions.map((a, i) => (
-                            <div key={i} style={styles.check}>
-                              <span style={styles.dot} />
-                              <span>{a}</span>
+                            <div key={i} style={s.checkRow}>
+                              <span style={s.dot} />
+                              <span style={s.checkText}>{a}</span>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      <div style={styles.row}>
-                        <div style={styles.rowTitle}>Post Drafts</div>
+                      <div style={s.row}>
+                        <div style={s.rowTitle}>Post Drafts</div>
                         <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
                           {result.gmb.postDrafts.map((p, i) => (
-                            <div key={i} style={styles.post}>
-                              <div style={{ fontWeight: 800 }}>{p.title}</div>
-                              <div style={{ marginTop: 6, color: "#475569", lineHeight: 1.5 }}>{p.body}</div>
+                            <div key={i} style={s.post}>
+                              <div style={s.postTitle}>{p.title}</div>
+                              <div style={s.postBody}>{p.body}</div>
                             </div>
                           ))}
                         </div>
@@ -284,42 +258,91 @@ export default function Home() {
                   </Section>
 
                   <Section title="Review Replies" subtitle="Templates for consistency">
-                    <div style={styles.twoCol}>
+                    <div style={s.twoCol}>
                       {result.reviews.responseTemplates.map((t, i) => (
-                        <div key={i} style={styles.row}>
-                          <div style={styles.rowTop}>
-                            <div style={styles.rowTitle}>{t.rating} Star Reply</div>
-                            <span style={styles.smallPill}>Template</span>
+                        <div key={i} style={s.row}>
+                          <div style={s.rowTop}>
+                            <div style={s.rowTitle}>{t.rating} Star Reply</div>
+                            <span style={s.pill}>Template</span>
                           </div>
-                          <div style={{ marginTop: 10, color: "#334155", lineHeight: 1.6 }}>{t.response}</div>
+                          <div style={s.reply}>{t.response}</div>
                         </div>
                       ))}
+                    </div>
+                  </Section>
+
+                  <Section title="30-Day Plan" subtitle="Next actions">
+                    <div style={s.twoCol}>
+                      <div style={s.row}>
+                        <div style={s.rowTitle}>Wins</div>
+                        <ul style={s.cleanListDark}>
+                          {result.monthly.wins.map((w, i) => (
+                            <li key={i}>{w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div style={s.row}>
+                        <div style={s.rowTitle}>Next Steps</div>
+                        <ol style={s.cleanListDark}>
+                          {result.monthly.nextSteps.map((n, i) => (
+                            <li key={i}>{n}</li>
+                          ))}
+                        </ol>
+                      </div>
                     </div>
                   </Section>
                 </>
               )}
             </div>
 
-            <div style={styles.footer}>
-              <span>LocalBoost AI • Demo</span>
-              <span style={{ color: "#64748b" }}>Next: accounts, saved clients, approvals, billing</span>
+            <div style={s.about}>
+              <div style={s.aboutHeader}>
+                <div style={s.aboutTitle}>About</div>
+                <div style={s.aboutSub}>
+                  LocalBoost is designed for traditional local businesses that want more customers without adding
+                  marketing headcount. The goal is to automate the repetitive work while keeping owners in control.
+                </div>
+              </div>
+
+              <div style={s.aboutGrid}>
+                <AboutBlock
+                  title="Who it is for"
+                  text="Service businesses, restaurants, clinics, and local operators who want more calls, bookings, and walk-ins."
+                />
+                <AboutBlock
+                  title="What it does"
+                  text="Generates an action plan with SEO updates, Google Business steps, and review response templates. Exports a PDF report."
+                />
+                <AboutBlock
+                  title="How it makes money"
+                  text="Subscription pricing tiers (reporting, growth, and automation). Add-ons: setup, review management, landing pages."
+                />
+                <AboutBlock
+                  title="What is next"
+                  text="Saved clients, scan history, real crawling, live keyword feeds, approvals, multi-user access, billing."
+                />
+              </div>
             </div>
-          </div>
-        </div>
+
+            <div style={s.footer}>
+              <span>LocalBoost</span>
+              <span style={{ color: "#6b7280" }}>White background, black/gray palette</span>
+            </div>
+          </section>
+        </main>
       </div>
     </div>
   );
 }
 
-function Topbar() {
+/* ---------- UI ---------- */
+
+function TopNav() {
   return (
-    <div style={styles.topbar}>
-      <div style={styles.brand}>
-        <div style={styles.brandName}>LocalBoost AI</div>
-        <div style={styles.brandSub}>Automation and SEO for local businesses</div>
-      </div>
-      <div style={styles.topbarRight}>
-        <span style={styles.smallPill}>Client Portal</span>
+    <div style={s.nav}>
+      <div style={s.navBrand}>LocalBoost</div>
+      <div style={s.navRight}>
+        <span style={s.navTag}>Client Portal</span>
       </div>
     </div>
   );
@@ -337,9 +360,9 @@ function Field({
   placeholder?: string;
 }) {
   return (
-    <label style={{ display: "grid", gap: 6 }}>
-      <span style={styles.label}>{label}</span>
-      <input value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={styles.input} />
+    <label style={s.field}>
+      <span style={s.label}>{label}</span>
+      <input value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={s.input} />
     </label>
   );
 }
@@ -347,249 +370,312 @@ function Field({
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div style={{ marginTop: 18 }}>
-      <div style={styles.sectionHeader}>
-        <div style={styles.sectionTitle}>{title}</div>
-        {subtitle && <div style={styles.sectionSub}>{subtitle}</div>}
+      <div style={s.sectionHeader}>
+        <div style={s.sectionTitle}>{title}</div>
+        {subtitle && <div style={s.sectionSub}>{subtitle}</div>}
       </div>
       <div style={{ marginTop: 10 }}>{children}</div>
     </div>
   );
 }
 
-function badgeStyle(sev: Severity): React.CSSProperties {
+function Empty() {
+  return (
+    <div style={s.empty}>
+      <div style={s.emptyTitle}>No results yet</div>
+      <div style={s.emptyText}>
+        Enter details and run a scan to generate a client-ready report with clear next steps.
+      </div>
+    </div>
+  );
+}
+
+function Mini({ title, value }: { title: string; value: string }) {
+  return (
+    <div style={s.mini}>
+      <div style={s.miniTitle}>{title}</div>
+      <div style={s.miniVal}>{value}</div>
+    </div>
+  );
+}
+
+function KV({ k, v }: { k: string; v: string }) {
+  return (
+    <div style={s.kv}>
+      <div style={s.k}>{k}</div>
+      <div style={s.v}>{v}</div>
+    </div>
+  );
+}
+
+function AboutBlock({ title, text }: { title: string; text: string }) {
+  return (
+    <div style={s.aboutBlock}>
+      <div style={s.aboutBlockTitle}>{title}</div>
+      <div style={s.aboutBlockText}>{text}</div>
+    </div>
+  );
+}
+
+function severityBadge(sev: Severity): React.CSSProperties {
   const base: React.CSSProperties = {
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: 12,
-    fontWeight: 800,
-    border: "1px solid rgba(15,23,42,0.12)",
-    background: "rgba(15,23,42,0.06)",
-    color: "#0f172a",
-    whiteSpace: "nowrap",
+    fontWeight: 650,
+    border: "1px solid rgba(0,0,0,0.10)",
+    background: "rgba(0,0,0,0.02)",
+    color: "#111827",
   };
-  if (sev === "High") return { ...base, background: "rgba(220,38,38,0.08)", color: "#991b1b", borderColor: "rgba(220,38,38,0.18)" };
-  if (sev === "Medium") return { ...base, background: "rgba(217,119,6,0.10)", color: "#92400e", borderColor: "rgba(217,119,6,0.20)" };
-  return { ...base, background: "rgba(22,163,74,0.10)", color: "#166534", borderColor: "rgba(22,163,74,0.20)" };
+  if (sev === "High") return { ...base, background: "rgba(0,0,0,0.04)", borderColor: "rgba(0,0,0,0.14)" };
+  if (sev === "Medium") return { ...base, background: "rgba(0,0,0,0.03)", borderColor: "rgba(0,0,0,0.12)" };
+  return base;
 }
 
-const styles: Record<string, React.CSSProperties> = {
+/* ---------- Styles (pure white, black/gray) ---------- */
+
+const s: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
-    background: "#0b1220",
-    color: "#0f172a",
+    background: "#ffffff",
+    color: "#111827",
+    fontFamily:
+      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial',
   },
-  shell: {
-    maxWidth: 1200,
-    margin: "0 auto",
-    padding: 18,
-  },
-  topbar: {
+  container: { maxWidth: 1180, margin: "0 auto", padding: 22 },
+
+  nav: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 12,
-    padding: "14px 16px",
-    borderRadius: 14,
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(148,163,184,0.18)",
-    backdropFilter: "blur(10px)",
-    color: "#e2e8f0",
+    padding: "14px 0",
+    borderBottom: "1px solid rgba(0,0,0,0.06)",
   },
-  brand: { display: "grid", gap: 2 },
-  brandName: { fontWeight: 900, fontSize: 14, letterSpacing: 0.2 },
-  brandSub: { fontSize: 12, color: "#94a3b8" },
-  topbarRight: { display: "flex", alignItems: "center", gap: 10 },
-  smallPill: {
+  navBrand: { fontSize: 14, fontWeight: 750, letterSpacing: 0.2 },
+  navRight: { display: "flex", gap: 10, alignItems: "center" },
+  navTag: {
+    fontSize: 12,
+    fontWeight: 650,
     padding: "6px 10px",
     borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 800,
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(148,163,184,0.18)",
-    color: "#e2e8f0",
-    whiteSpace: "nowrap",
+    border: "1px solid rgba(0,0,0,0.10)",
+    background: "#ffffff",
   },
 
-  layout: {
+  hero: {
     display: "grid",
-    gridTemplateColumns: "420px 1fr",
-    gap: 14,
-    marginTop: 14,
+    gridTemplateColumns: "1.2fr 0.8fr",
+    gap: 18,
+    padding: "22px 0 10px",
   },
+  kicker: { fontSize: 12, color: "#6b7280", fontWeight: 650, letterSpacing: 0.2 },
+  h1: { margin: "8px 0 0", fontSize: 44, lineHeight: 1.06, fontWeight: 780, letterSpacing: -0.8 },
+  sub: { marginTop: 12, color: "#374151", fontSize: 14, lineHeight: 1.65, maxWidth: 680 },
 
-  panel: {
-    borderRadius: 14,
+  heroRight: { display: "grid", gap: 12 },
+  heroCard: {
+    borderRadius: 16,
+    border: "1px solid rgba(0,0,0,0.08)",
+    background: "#ffffff",
     padding: 16,
-    background: "#0f172a",
-    border: "1px solid rgba(148,163,184,0.18)",
-    color: "#e2e8f0",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
   },
-  panelHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
-  panelTitle: { fontWeight: 900, fontSize: 14 },
-  panelSub: { fontSize: 12, color: "#94a3b8", marginTop: 4, lineHeight: 1.4 },
+  heroCardLabel: { fontSize: 12, color: "#6b7280", fontWeight: 650 },
+  heroScore: { fontSize: 28, fontWeight: 780, marginTop: 6, letterSpacing: -0.4 },
+  heroScoreSub: { marginTop: 8, fontSize: 12, color: "#374151", fontWeight: 650 },
+  heroHint: { marginTop: 10, fontSize: 12, color: "#6b7280", lineHeight: 1.5 },
+  cleanList: { margin: "10px 0 0", paddingLeft: 18, color: "#374151", fontSize: 12, lineHeight: 1.75 },
 
-  label: { fontSize: 12, fontWeight: 800, color: "#cbd5e1" },
+  grid: { display: "grid", gridTemplateColumns: "380px 1fr", gap: 18, paddingTop: 16, alignItems: "start" },
+
+  card: {
+    borderRadius: 16,
+    border: "1px solid rgba(0,0,0,0.08)",
+    background: "#ffffff",
+    padding: 16,
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+  },
+  cardHeader: {},
+  cardHeaderRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
+  cardTitle: { fontSize: 13, fontWeight: 750 },
+  cardSub: { marginTop: 6, fontSize: 12, color: "#6b7280", lineHeight: 1.55 },
+
+  form: { display: "grid", gap: 12, marginTop: 14 },
+  field: { display: "grid", gap: 6 },
+  label: { fontSize: 12, fontWeight: 650, color: "#374151" },
   input: {
     width: "100%",
     padding: "12px 12px",
     borderRadius: 12,
-    border: "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(255,255,255,0.06)",
-    color: "#e2e8f0",
+    border: "1px solid rgba(0,0,0,0.10)",
+    background: "#ffffff",
     outline: "none",
+    color: "#111827",
   },
-  primary: {
+
+  primaryBtn: {
     width: "100%",
     padding: "12px 12px",
     borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "#ffffff",
-    color: "#0b1220",
-    fontWeight: 900,
+    border: "1px solid rgba(0,0,0,0.10)",
+    background: "#111827",
+    color: "#ffffff",
+    fontWeight: 700,
     cursor: "pointer",
   },
-  secondary: {
+  secondaryBtn: {
     width: "100%",
     padding: "12px 12px",
     borderRadius: 12,
-    border: "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(255,255,255,0.06)",
-    color: "#e2e8f0",
-    fontWeight: 900,
+    border: "1px solid rgba(0,0,0,0.10)",
+    background: "#ffffff",
+    color: "#111827",
+    fontWeight: 700,
   },
 
   alert: {
-    padding: 12,
     borderRadius: 12,
-    background: "rgba(220,38,38,0.10)",
-    border: "1px solid rgba(220,38,38,0.22)",
+    border: "1px solid rgba(0,0,0,0.12)",
+    background: "rgba(0,0,0,0.02)",
+    padding: 12,
   },
-  alertTitle: { fontWeight: 900, marginBottom: 6, color: "#fecaca" },
-  alertBody: { color: "#fecaca", fontSize: 12, lineHeight: 1.5 },
+  alertTitle: { fontSize: 12, fontWeight: 750, color: "#111827" },
+  alertBody: { marginTop: 6, fontSize: 12, color: "#374151", lineHeight: 1.5 },
 
   note: {
-    padding: 12,
     borderRadius: 12,
-    border: "1px solid rgba(148,163,184,0.14)",
-    background: "rgba(255,255,255,0.04)",
-    color: "#cbd5e1",
+    border: "1px solid rgba(0,0,0,0.06)",
+    background: "rgba(0,0,0,0.02)",
+    padding: 12,
     fontSize: 12,
-    lineHeight: 1.5,
+    color: "#374151",
+    lineHeight: 1.55,
   },
 
-  main: { display: "grid", gap: 14 },
-  card: {
+  rightCol: { display: "grid", gap: 14 },
+
+  scoreChip: {
     borderRadius: 14,
-    padding: 16,
-    background: "#f8fafc",
-    border: "1px solid rgba(15,23,42,0.10)",
+    border: "1px solid rgba(0,0,0,0.08)",
+    padding: "10px 12px",
+    minWidth: 110,
+    textAlign: "right",
+    background: "rgba(0,0,0,0.02)",
   },
-  cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
-  cardTitle: { fontWeight: 900, fontSize: 14, color: "#0f172a" },
-  cardSub: { fontSize: 12, color: "#64748b", marginTop: 4, lineHeight: 1.4 },
-
-  scorePill: {
-    padding: "8px 12px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 900,
-    border: "1px solid rgba(15,23,42,0.10)",
-    whiteSpace: "nowrap",
-  },
-  scorePillMuted: {
-    padding: "8px 12px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 900,
-    background: "rgba(15,23,42,0.06)",
-    border: "1px solid rgba(15,23,42,0.10)",
-    color: "#475569",
-    whiteSpace: "nowrap",
-  },
+  scoreChipTop: { fontSize: 11, color: "#6b7280", fontWeight: 650 },
+  scoreChipVal: { fontSize: 16, fontWeight: 780, marginTop: 4 },
 
   empty: {
     marginTop: 14,
-    borderRadius: 14,
+    borderRadius: 16,
+    border: "1px dashed rgba(0,0,0,0.14)",
+    background: "rgba(0,0,0,0.02)",
     padding: 18,
-    border: "1px dashed rgba(15,23,42,0.18)",
-    background: "rgba(15,23,42,0.02)",
   },
-  emptyTitle: { fontWeight: 900, color: "#0f172a" },
-  emptySub: { marginTop: 8, color: "#64748b", lineHeight: 1.5, fontSize: 12 },
+  emptyTitle: { fontWeight: 750, fontSize: 13 },
+  emptyText: { marginTop: 8, fontSize: 12, color: "#6b7280", lineHeight: 1.6 },
 
-  summaryGrid: {
-    marginTop: 14,
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: 12,
-  },
-  summaryCard: {
+  sectionHeader: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 },
+  sectionTitle: { fontSize: 13, fontWeight: 750 },
+  sectionSub: { fontSize: 12, color: "#6b7280" },
+
+  summaryRow: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 14 },
+  mini: {
     borderRadius: 14,
-    padding: 14,
-    border: "1px solid rgba(15,23,42,0.10)",
+    border: "1px solid rgba(0,0,0,0.08)",
     background: "#ffffff",
+    padding: 14,
   },
-  kicker: { fontSize: 12, fontWeight: 900, color: "#64748b" },
-  bigText: { marginTop: 6, fontWeight: 900, color: "#0f172a" },
-  muted: { marginTop: 4, color: "#64748b", fontSize: 12 },
+  miniTitle: { fontSize: 12, color: "#6b7280", fontWeight: 650 },
+  miniVal: { marginTop: 8, fontSize: 13, fontWeight: 750, lineHeight: 1.35 },
 
-  sectionHeader: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 },
-  sectionTitle: { fontWeight: 900, fontSize: 13, color: "#0f172a" },
-  sectionSub: { fontSize: 12, color: "#64748b" },
+  execBox: {
+    borderRadius: 16,
+    border: "1px solid rgba(0,0,0,0.08)",
+    background: "rgba(0,0,0,0.02)",
+    padding: 14,
+  },
+  execHeadline: { fontSize: 13, fontWeight: 780, lineHeight: 1.35 },
+  notes: { margin: "10px 0 0", paddingLeft: 18, color: "#374151", fontSize: 12, lineHeight: 1.75 },
+  noteItem: { marginBottom: 6 },
 
   row: {
-    borderRadius: 14,
-    padding: 14,
-    border: "1px solid rgba(15,23,42,0.10)",
+    borderRadius: 16,
+    border: "1px solid rgba(0,0,0,0.08)",
     background: "#ffffff",
+    padding: 14,
   },
   rowTop: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 },
-  rowTitle: { fontWeight: 900, color: "#0f172a" },
-  rowBody: { marginTop: 8, color: "#334155", fontSize: 12, lineHeight: 1.6 },
-  rowLabel: { fontWeight: 900, color: "#0f172a" },
-
-  kv: { marginTop: 10, display: "grid", gridTemplateColumns: "70px 1fr", gap: 10, alignItems: "baseline" },
-  k: { fontSize: 12, fontWeight: 900, color: "#64748b" },
-  v: { color: "#0f172a", fontSize: 12, lineHeight: 1.5 },
-
-  tags: { marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 },
-  tag: {
-    padding: "6px 10px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 800,
-    background: "rgba(15,23,42,0.06)",
-    border: "1px solid rgba(15,23,42,0.10)",
-    color: "#0f172a",
-  },
+  rowTitle: { fontWeight: 750, fontSize: 13 },
+  rowText: { marginTop: 8, fontSize: 12, color: "#374151", lineHeight: 1.65 },
 
   twoCol: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
-
-  check: { display: "flex", alignItems: "center", gap: 10, color: "#0f172a", fontSize: 12 },
-  dot: {
-    width: 10,
-    height: 10,
+  smallKicker: { fontSize: 12, fontWeight: 650, color: "#6b7280" },
+  kv: { marginTop: 10, display: "grid", gridTemplateColumns: "60px 1fr", gap: 10, alignItems: "baseline" },
+  k: { fontSize: 12, fontWeight: 750, color: "#6b7280" },
+  v: { fontSize: 12, color: "#111827", lineHeight: 1.55 },
+  tags: { marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" },
+  tag: {
+    fontSize: 12,
+    fontWeight: 650,
+    padding: "6px 10px",
     borderRadius: 999,
-    background: "rgba(22,163,74,0.9)",
-    boxShadow: "0 0 0 4px rgba(22,163,74,0.16)",
+    border: "1px solid rgba(0,0,0,0.10)",
+    background: "rgba(0,0,0,0.02)",
+    color: "#111827",
   },
+
+  checkRow: { display: "flex", gap: 10, alignItems: "center" },
+  dot: { width: 10, height: 10, borderRadius: 999, background: "#111827" },
+  checkText: { fontSize: 12, color: "#111827" },
 
   post: {
-    padding: 12,
     borderRadius: 12,
-    border: "1px solid rgba(15,23,42,0.10)",
-    background: "rgba(15,23,42,0.02)",
+    border: "1px solid rgba(0,0,0,0.08)",
+    background: "rgba(0,0,0,0.02)",
+    padding: 12,
   },
+  postTitle: { fontSize: 12, fontWeight: 750, color: "#111827" },
+  postBody: { marginTop: 6, fontSize: 12, color: "#374151", lineHeight: 1.65 },
 
-  list: { margin: "10px 0 0", paddingLeft: 18, color: "#334155", fontSize: 12, lineHeight: 1.6 },
-  listItem: { marginBottom: 6 },
+  pill: {
+    fontSize: 12,
+    fontWeight: 650,
+    padding: "6px 10px",
+    borderRadius: 999,
+    border: "1px solid rgba(0,0,0,0.10)",
+    background: "rgba(0,0,0,0.02)",
+  },
+  reply: { marginTop: 10, fontSize: 12, color: "#374151", lineHeight: 1.75 },
+
+  cleanListDark: { margin: "10px 0 0", paddingLeft: 18, color: "#374151", fontSize: 12, lineHeight: 1.75 },
+
+  about: {
+    borderRadius: 16,
+    border: "1px solid rgba(0,0,0,0.08)",
+    background: "#ffffff",
+    padding: 16,
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+  },
+  aboutHeader: { display: "grid", gap: 6 },
+  aboutTitle: { fontSize: 13, fontWeight: 750 },
+  aboutSub: { fontSize: 12, color: "#6b7280", lineHeight: 1.6, maxWidth: 900 },
+  aboutGrid: { marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
+  aboutBlock: {
+    borderRadius: 14,
+    border: "1px solid rgba(0,0,0,0.08)",
+    background: "rgba(0,0,0,0.02)",
+    padding: 14,
+  },
+  aboutBlockTitle: { fontSize: 12, fontWeight: 750, color: "#111827" },
+  aboutBlockText: { marginTop: 8, fontSize: 12, color: "#374151", lineHeight: 1.75 },
 
   footer: {
     display: "flex",
     justifyContent: "space-between",
-    gap: 10,
-    padding: "0 2px",
+    gap: 12,
+    padding: "8px 2px",
     fontSize: 12,
-    color: "#94a3b8",
+    color: "#9ca3af",
   },
 };
