@@ -26,18 +26,11 @@ export default function Home() {
 
   const score = result?.summary?.score ?? null;
 
-  const scoreLabel = useMemo(() => {
-    if (score == null) return "";
-    if (score >= 80) return "Strong";
-    if (score >= 60) return "Decent — easy wins";
-    return "Needs attention";
-  }, [score]);
-
-  const scoreColor = useMemo(() => {
-    if (score == null) return "#9CA3AF";
-    if (score >= 80) return "#22C55E";
-    if (score >= 60) return "#F59E0B";
-    return "#EF4444";
+  const scoreBand = useMemo(() => {
+    if (score == null) return { label: "", color: "#94a3b8", bg: "rgba(148,163,184,0.12)" };
+    if (score >= 80) return { label: "Strong", color: "#16a34a", bg: "rgba(34,197,94,0.14)" };
+    if (score >= 60) return { label: "Good", color: "#d97706", bg: "rgba(245,158,11,0.14)" };
+    return { label: "Needs Attention", color: "#dc2626", bg: "rgba(239,68,68,0.12)" };
   }, [score]);
 
   async function runScan() {
@@ -94,43 +87,39 @@ export default function Home() {
   }
 
   return (
-    <div style={styles.bg}>
-      <div style={styles.wrap}>
-        <Header />
+    <div style={styles.page}>
+      <div style={styles.shell}>
+        <Topbar />
 
-        <div style={styles.grid}>
-          {/* LEFT: INPUTS */}
-          <div style={styles.card}>
-            <div style={styles.cardTop}>
+        <div style={styles.layout}>
+          <div style={styles.panel}>
+            <div style={styles.panelHeader}>
               <div>
-                <div style={styles.cardTitle}>Business Info</div>
-                <div style={styles.cardSub}>Enter client details, then run the scan.</div>
+                <div style={styles.panelTitle}>Client Details</div>
+                <div style={styles.panelSub}>Run a scan to generate a structured action plan.</div>
               </div>
-              <span style={styles.pill}>MVP Demo</span>
             </div>
 
             <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
-              <Field label="Business Name" value={name} onChange={setName} placeholder="e.g., Bright Smile Dental" />
+              <Field label="Business Name" value={name} onChange={setName} placeholder="Example: Bright Smile Dental" />
               <Field label="Website" value={website} onChange={setWebsite} placeholder="https://..." />
               <Field label="City" value={city} onChange={setCity} placeholder="Austin, TX" />
-              <Field label="Category" value={category} onChange={setCategory} placeholder="Plumber, Dentist, Restaurant..." />
+              <Field label="Category" value={category} onChange={setCategory} placeholder="Dentist, Plumber, Restaurant..." />
 
-              <button onClick={runScan} disabled={loading} style={{ ...styles.primaryBtn, opacity: loading ? 0.7 : 1 }}>
-                {loading ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                    <Spinner /> Scanning...
-                  </span>
-                ) : (
-                  "Run Scan"
-                )}
+              <button
+                onClick={runScan}
+                disabled={loading}
+                style={{ ...styles.primary, opacity: loading ? 0.75 : 1 }}
+              >
+                {loading ? "Running Scan..." : "Run Scan"}
               </button>
 
               <button
                 onClick={downloadReport}
                 disabled={!result}
                 style={{
-                  ...styles.secondaryBtn,
-                  opacity: result ? 1 : 0.5,
+                  ...styles.secondary,
+                  opacity: result ? 1 : 0.55,
                   cursor: result ? "pointer" : "not-allowed",
                 }}
               >
@@ -139,114 +128,124 @@ export default function Home() {
 
               {error && (
                 <div style={styles.alert}>
-                  <div style={{ fontWeight: 800, marginBottom: 6 }}>Something went wrong</div>
-                  <div style={{ color: "#fecaca" }}>{error}</div>
+                  <div style={styles.alertTitle}>Request failed</div>
+                  <div style={styles.alertBody}>{error}</div>
                 </div>
               )}
 
-              <div style={styles.tip}>
-                <b>Demo note:</b> Right now this returns a simulated analysis. Next step is connecting real crawling + keyword data.
+              <div style={styles.note}>
+                This demo returns a simulated analysis. The production version will connect real crawling, local keyword
+                data, and approval-based changes.
               </div>
             </div>
           </div>
 
-          {/* RIGHT: RESULTS */}
-          <div style={styles.stack}>
+          <div style={styles.main}>
             <div style={styles.card}>
-              <div style={styles.cardTop}>
+              <div style={styles.cardHeader}>
                 <div>
-                  <div style={styles.cardTitle}>Scan Results</div>
-                  <div style={styles.cardSub}>Client-ready summary with actionable next steps.</div>
+                  <div style={styles.cardTitle}>Overview</div>
+                  <div style={styles.cardSub}>A concise summary with clear next actions.</div>
                 </div>
+
+                {result && score != null ? (
+                  <div style={{ ...styles.scorePill, color: scoreBand.color, background: scoreBand.bg }}>
+                    {score}/100 • {scoreBand.label}
+                  </div>
+                ) : (
+                  <div style={styles.scorePillMuted}>No scan yet</div>
+                )}
               </div>
 
               {!result ? (
-                <EmptyState />
+                <div style={styles.empty}>
+                  <div style={styles.emptyTitle}>Run a scan to generate results</div>
+                  <div style={styles.emptySub}>
+                    You will receive prioritized issues, copy-ready SEO updates, Google Business actions, and review
+                    reply templates.
+                  </div>
+                </div>
               ) : (
                 <>
-                  <div style={styles.scoreRow}>
-                    <div style={styles.scoreCard}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 14 }}>
-                        <div>
-                          <div style={{ color: "#cbd5e1", fontSize: 12 }}>Overall Score</div>
-                          <div style={{ fontSize: 30, fontWeight: 900, marginTop: 4, color: scoreColor }}>
-                            {result.summary.score}/100
-                          </div>
-                          <div style={{ color: "#e5e7eb", fontWeight: 800, marginTop: 4 }}>{scoreLabel}</div>
-                        </div>
-
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ color: "#cbd5e1", fontSize: 12 }}>Business</div>
-                          <div style={{ fontWeight: 900 }}>{result.business.name}</div>
-                          <div style={{ color: "#cbd5e1" }}>{result.business.city}</div>
-                          <div style={{ color: "#cbd5e1" }}>{result.business.category}</div>
-                        </div>
-                      </div>
-
-                      <div style={{ marginTop: 14 }}>
-                        <div style={{ fontWeight: 900 }}>{result.summary.headline}</div>
-                        <ul style={{ margin: "8px 0 0", paddingLeft: 18, color: "#cbd5e1" }}>
-                          {result.summary.notes.map((n, i) => (
-                            <li key={i} style={{ marginBottom: 6 }}>
-                              {n}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                  <div style={styles.summaryGrid}>
+                    <div style={styles.summaryCard}>
+                      <div style={styles.kicker}>Business</div>
+                      <div style={styles.bigText}>{result.business.name}</div>
+                      <div style={styles.muted}>{result.business.city}</div>
+                      <div style={styles.muted}>{result.business.category}</div>
+                      <div style={{ marginTop: 10, ...styles.muted }}>{result.business.website}</div>
                     </div>
 
-                    <div style={styles.quickActions}>
-                      <div style={styles.quickTitle}>Quick Actions</div>
-                      <div style={styles.quickList}>
-                        <QuickItem title="Fix Titles & H1s" desc="Big ranking impact in local search." />
-                        <QuickItem title="Weekly Google Posts" desc="Improves map visibility and calls." />
-                        <QuickItem title="Review Response Templates" desc="Build trust and conversion." />
-                      </div>
+                    <div style={styles.summaryCard}>
+                      <div style={styles.kicker}>Summary</div>
+                      <div style={styles.bigText}>{result.summary.headline}</div>
+                      <ul style={styles.list}>
+                        {result.summary.notes.map((n, i) => (
+                          <li key={i} style={styles.listItem}>
+                            {n}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div style={styles.summaryCard}>
+                      <div style={styles.kicker}>Next 30 Days</div>
+                      <div style={styles.bigText}>Recommended focus</div>
+                      <ol style={styles.list}>
+                        {result.monthly.nextSteps.map((n, i) => (
+                          <li key={i} style={styles.listItem}>
+                            {n}
+                          </li>
+                        ))}
+                      </ol>
                     </div>
                   </div>
 
                   <Section title="Issues Found" subtitle="Prioritized by impact">
                     <div style={{ display: "grid", gap: 10 }}>
                       {result.issues.map((x, i) => (
-                        <div key={i} style={styles.rowCard}>
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                            <div style={{ fontWeight: 900 }}>{x.title}</div>
-                            <span style={severityStyle(x.severity)}>{x.severity}</span>
+                        <div key={i} style={styles.row}>
+                          <div style={styles.rowTop}>
+                            <div style={styles.rowTitle}>{x.title}</div>
+                            <span style={badgeStyle(x.severity)}>{x.severity}</span>
                           </div>
-                          <div style={{ marginTop: 8, color: "#cbd5e1" }}>
-                            <b style={{ color: "#e5e7eb" }}>Why:</b> {x.why}
-                          </div>
-                          <div style={{ marginTop: 6, color: "#cbd5e1" }}>
-                            <b style={{ color: "#e5e7eb" }}>Fix:</b> {x.fix}
+                          <div style={styles.rowBody}>
+                            <div>
+                              <span style={styles.rowLabel}>Why:</span> {x.why}
+                            </div>
+                            <div style={{ marginTop: 6 }}>
+                              <span style={styles.rowLabel}>Fix:</span> {x.fix}
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   </Section>
 
-                  <Section title="Recommended SEO Updates" subtitle="Copy/paste suggestions">
+                  <Section title="Recommended SEO Updates" subtitle="Copy-ready suggestions">
                     <div style={styles.twoCol}>
                       {result.seoFixes.map((x, i) => (
-                        <div key={i} style={styles.rowCard}>
-                          <div style={{ color: "#cbd5e1", fontSize: 12 }}>{x.page}</div>
-                          <div style={{ marginTop: 10 }}>
-                            <div style={styles.kv}>
-                              <span style={styles.k}>Title</span>
-                              <span style={styles.v}>{x.title}</span>
-                            </div>
-                            <div style={styles.kv}>
-                              <span style={styles.k}>Meta</span>
-                              <span style={styles.v}>{x.meta}</span>
-                            </div>
-                            <div style={styles.kv}>
-                              <span style={styles.k}>H1</span>
-                              <span style={styles.v}>{x.h1}</span>
-                            </div>
+                        <div key={i} style={styles.row}>
+                          <div style={styles.kicker}>{x.page}</div>
+
+                          <div style={styles.kv}>
+                            <div style={styles.k}>Title</div>
+                            <div style={styles.v}>{x.title}</div>
                           </div>
 
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                          <div style={styles.kv}>
+                            <div style={styles.k}>Meta</div>
+                            <div style={styles.v}>{x.meta}</div>
+                          </div>
+
+                          <div style={styles.kv}>
+                            <div style={styles.k}>H1</div>
+                            <div style={styles.v}>{x.h1}</div>
+                          </div>
+
+                          <div style={styles.tags}>
                             {x.keywords.map((kw, idx) => (
-                              <span key={idx} style={styles.chip}>
+                              <span key={idx} style={styles.tag}>
                                 {kw}
                               </span>
                             ))}
@@ -256,27 +255,27 @@ export default function Home() {
                     </div>
                   </Section>
 
-                  <Section title="Google Business Profile" subtitle="Map pack improvements">
+                  <Section title="Google Business Profile" subtitle="Local visibility actions">
                     <div style={styles.twoCol}>
-                      <div style={styles.rowCard}>
-                        <div style={{ fontWeight: 900, marginBottom: 10 }}>Checklist</div>
-                        <div style={{ display: "grid", gap: 8 }}>
+                      <div style={styles.row}>
+                        <div style={styles.rowTitle}>Checklist</div>
+                        <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
                           {result.gmb.actions.map((a, i) => (
-                            <div key={i} style={styles.checkRow}>
-                              <span style={styles.checkDot} />
-                              <span style={{ color: "#e5e7eb" }}>{a}</span>
+                            <div key={i} style={styles.check}>
+                              <span style={styles.dot} />
+                              <span>{a}</span>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      <div style={styles.rowCard}>
-                        <div style={{ fontWeight: 900, marginBottom: 10 }}>Post Drafts</div>
-                        <div style={{ display: "grid", gap: 10 }}>
+                      <div style={styles.row}>
+                        <div style={styles.rowTitle}>Post Drafts</div>
+                        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
                           {result.gmb.postDrafts.map((p, i) => (
-                            <div key={i} style={styles.postCard}>
-                              <div style={{ fontWeight: 900 }}>{p.title}</div>
-                              <div style={{ color: "#cbd5e1", marginTop: 6 }}>{p.body}</div>
+                            <div key={i} style={styles.post}>
+                              <div style={{ fontWeight: 800 }}>{p.title}</div>
+                              <div style={{ marginTop: 6, color: "#475569", lineHeight: 1.5 }}>{p.body}</div>
                             </div>
                           ))}
                         </div>
@@ -284,81 +283,44 @@ export default function Home() {
                     </div>
                   </Section>
 
-                  <Section title="Review Replies" subtitle="Templates you can reuse">
+                  <Section title="Review Replies" subtitle="Templates for consistency">
                     <div style={styles.twoCol}>
                       {result.reviews.responseTemplates.map((t, i) => (
-                        <div key={i} style={styles.rowCard}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ fontWeight: 900 }}>{t.rating}★ Reply</div>
-                            <span style={styles.pillMuted}>Copy</span>
+                        <div key={i} style={styles.row}>
+                          <div style={styles.rowTop}>
+                            <div style={styles.rowTitle}>{t.rating} Star Reply</div>
+                            <span style={styles.smallPill}>Template</span>
                           </div>
-                          <div style={{ color: "#cbd5e1", marginTop: 10, lineHeight: 1.5 }}>{t.response}</div>
+                          <div style={{ marginTop: 10, color: "#334155", lineHeight: 1.6 }}>{t.response}</div>
                         </div>
                       ))}
-                    </div>
-                  </Section>
-
-                  <Section title="30-Day Plan" subtitle="What we’ll do this month">
-                    <div style={styles.twoCol}>
-                      <div style={styles.rowCard}>
-                        <div style={{ fontWeight: 900, marginBottom: 10 }}>Wins</div>
-                        <ul style={{ margin: 0, paddingLeft: 18, color: "#cbd5e1" }}>
-                          {result.monthly.wins.map((w, i) => (
-                            <li key={i} style={{ marginBottom: 6 }}>
-                              {w}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div style={styles.rowCard}>
-                        <div style={{ fontWeight: 900, marginBottom: 10 }}>Next Steps</div>
-                        <ol style={{ margin: 0, paddingLeft: 18, color: "#cbd5e1" }}>
-                          {result.monthly.nextSteps.map((n, i) => (
-                            <li key={i} style={{ marginBottom: 6 }}>
-                              {n}
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
                     </div>
                   </Section>
                 </>
               )}
             </div>
+
+            <div style={styles.footer}>
+              <span>LocalBoost AI • Demo</span>
+              <span style={{ color: "#64748b" }}>Next: accounts, saved clients, approvals, billing</span>
+            </div>
           </div>
         </div>
-
-        <Footer />
       </div>
     </div>
   );
 }
 
-/* ---------------- UI Components ---------------- */
-
-function Header() {
+function Topbar() {
   return (
-    <div style={styles.header}>
+    <div style={styles.topbar}>
       <div style={styles.brand}>
-        <div style={styles.logo}>⚡</div>
-        <div>
-          <div style={styles.hTitle}>LocalBoost AI</div>
-          <div style={styles.hSub}>AI-driven automation + SEO for traditional local businesses</div>
-        </div>
+        <div style={styles.brandName}>LocalBoost AI</div>
+        <div style={styles.brandSub}>Automation and SEO for local businesses</div>
       </div>
-      <div style={styles.headerRight}>
-        <span style={styles.pillMuted}>Client Portal Preview</span>
+      <div style={styles.topbarRight}>
+        <span style={styles.smallPill}>Client Portal</span>
       </div>
-    </div>
-  );
-}
-
-function Footer() {
-  return (
-    <div style={styles.footer}>
-      <span>© {new Date().getFullYear()} LocalBoost AI</span>
-      <span style={{ color: "#94a3b8" }}>Demo build • Next: real crawling + Stripe + client accounts</span>
     </div>
   );
 }
@@ -376,13 +338,8 @@ function Field({
 }) {
   return (
     <label style={{ display: "grid", gap: 6 }}>
-      <span style={{ color: "#cbd5e1", fontSize: 13, fontWeight: 700 }}>{label}</span>
-      <input
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        style={styles.input}
-      />
+      <span style={styles.label}>{label}</span>
+      <input value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={styles.input} />
     </label>
   );
 }
@@ -390,274 +347,249 @@ function Field({
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div style={{ marginTop: 18 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
-        <div style={{ fontWeight: 1000, fontSize: 15 }}>{title}</div>
-        {subtitle && <div style={{ color: "#94a3b8", fontSize: 12 }}>{subtitle}</div>}
+      <div style={styles.sectionHeader}>
+        <div style={styles.sectionTitle}>{title}</div>
+        {subtitle && <div style={styles.sectionSub}>{subtitle}</div>}
       </div>
       <div style={{ marginTop: 10 }}>{children}</div>
     </div>
   );
 }
 
-function EmptyState() {
-  return (
-    <div style={styles.empty}>
-      <div style={{ fontSize: 18, fontWeight: 1000 }}>Run a scan to generate a client report</div>
-      <div style={{ color: "#94a3b8", marginTop: 8, lineHeight: 1.5 }}>
-        You’ll get a score, priority issues, SEO copy/paste fixes, Google Business actions, and review reply templates.
-      </div>
-      <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <span style={styles.chip}>Local SEO</span>
-        <span style={styles.chip}>Google Maps</span>
-        <span style={styles.chip}>Admin Automation (next)</span>
-      </div>
-    </div>
-  );
-}
-
-function QuickItem({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div style={styles.quickItem}>
-      <div style={{ fontWeight: 900 }}>{title}</div>
-      <div style={{ color: "#94a3b8", fontSize: 12, marginTop: 4 }}>{desc}</div>
-    </div>
-  );
-}
-
-function Spinner() {
-  return (
-    <span
-      style={{
-        width: 16,
-        height: 16,
-        borderRadius: 999,
-        border: "2px solid rgba(0,0,0,0.25)",
-        borderTop: "2px solid rgba(0,0,0,0.9)",
-        display: "inline-block",
-        animation: "spin 0.8s linear infinite",
-      }}
-    />
-  );
-}
-
-function severityStyle(sev: Severity): React.CSSProperties {
+function badgeStyle(sev: Severity): React.CSSProperties {
   const base: React.CSSProperties = {
-    padding: "4px 10px",
+    padding: "6px 10px",
     borderRadius: 999,
     fontSize: 12,
-    fontWeight: 900,
-    border: "1px solid rgba(148,163,184,0.35)",
-    background: "rgba(15,23,42,0.35)",
+    fontWeight: 800,
+    border: "1px solid rgba(15,23,42,0.12)",
+    background: "rgba(15,23,42,0.06)",
+    color: "#0f172a",
+    whiteSpace: "nowrap",
   };
-  if (sev === "High") return { ...base, color: "#fecaca", borderColor: "rgba(239,68,68,0.45)" };
-  if (sev === "Medium") return { ...base, color: "#fde68a", borderColor: "rgba(245,158,11,0.45)" };
-  return { ...base, color: "#bbf7d0", borderColor: "rgba(34,197,94,0.45)" };
+  if (sev === "High") return { ...base, background: "rgba(220,38,38,0.08)", color: "#991b1b", borderColor: "rgba(220,38,38,0.18)" };
+  if (sev === "Medium") return { ...base, background: "rgba(217,119,6,0.10)", color: "#92400e", borderColor: "rgba(217,119,6,0.20)" };
+  return { ...base, background: "rgba(22,163,74,0.10)", color: "#166534", borderColor: "rgba(22,163,74,0.20)" };
 }
 
-/* ---------------- Styles ---------------- */
-
 const styles: Record<string, React.CSSProperties> = {
-  bg: {
+  page: {
     minHeight: "100vh",
-    background: "radial-gradient(1200px 900px at 10% 0%, rgba(99,102,241,0.20), transparent 55%), #070A12",
-    color: "#e5e7eb",
+    background: "#0b1220",
+    color: "#0f172a",
   },
-  wrap: {
-    maxWidth: 1180,
+  shell: {
+    maxWidth: 1200,
     margin: "0 auto",
-    padding: 22,
+    padding: 18,
   },
-  header: {
+  topbar: {
     display: "flex",
-    alignItems: "center",
     justifyContent: "space-between",
-    gap: 14,
-    padding: "14px 14px",
-    borderRadius: 16,
-    border: "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(15, 23, 42, 0.35)",
-    backdropFilter: "blur(10px)",
-  },
-  brand: { display: "flex", gap: 12, alignItems: "center" },
-  logo: {
-    width: 44,
-    height: 44,
+    alignItems: "center",
+    gap: 12,
+    padding: "14px 16px",
     borderRadius: 14,
-    display: "grid",
-    placeItems: "center",
-    background: "rgba(99,102,241,0.20)",
-    border: "1px solid rgba(99,102,241,0.30)",
-    fontSize: 18,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(148,163,184,0.18)",
+    backdropFilter: "blur(10px)",
+    color: "#e2e8f0",
   },
-  hTitle: { fontWeight: 1000, fontSize: 16, letterSpacing: 0.2 },
-  hSub: { color: "#94a3b8", marginTop: 2, fontSize: 12 },
-  headerRight: { display: "flex", alignItems: "center", gap: 10 },
-  grid: {
+  brand: { display: "grid", gap: 2 },
+  brandName: { fontWeight: 900, fontSize: 14, letterSpacing: 0.2 },
+  brandSub: { fontSize: 12, color: "#94a3b8" },
+  topbarRight: { display: "flex", alignItems: "center", gap: 10 },
+  smallPill: {
+    padding: "6px 10px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 800,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(148,163,184,0.18)",
+    color: "#e2e8f0",
+    whiteSpace: "nowrap",
+  },
+
+  layout: {
     display: "grid",
     gridTemplateColumns: "420px 1fr",
     gap: 14,
     marginTop: 14,
   },
-  stack: { display: "grid", gap: 14 },
-  card: {
-    borderRadius: 16,
-    border: "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(15, 23, 42, 0.35)",
-    backdropFilter: "blur(10px)",
+
+  panel: {
+    borderRadius: 14,
     padding: 16,
+    background: "#0f172a",
+    border: "1px solid rgba(148,163,184,0.18)",
+    color: "#e2e8f0",
   },
-  cardTop: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" },
-  cardTitle: { fontWeight: 1000, fontSize: 14 },
-  cardSub: { color: "#94a3b8", fontSize: 12, marginTop: 4, lineHeight: 1.4 },
-  pill: {
-    fontSize: 12,
-    fontWeight: 900,
-    padding: "6px 10px",
-    borderRadius: 999,
-    color: "#e5e7eb",
-    border: "1px solid rgba(99,102,241,0.35)",
-    background: "rgba(99,102,241,0.16)",
-    whiteSpace: "nowrap",
-  },
-  pillMuted: {
-    fontSize: 12,
-    fontWeight: 900,
-    padding: "6px 10px",
-    borderRadius: 999,
-    color: "#cbd5e1",
-    border: "1px solid rgba(148,163,184,0.22)",
-    background: "rgba(2, 6, 23, 0.25)",
-    whiteSpace: "nowrap",
-  },
+  panelHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
+  panelTitle: { fontWeight: 900, fontSize: 14 },
+  panelSub: { fontSize: 12, color: "#94a3b8", marginTop: 4, lineHeight: 1.4 },
+
+  label: { fontSize: 12, fontWeight: 800, color: "#cbd5e1" },
   input: {
     width: "100%",
     padding: "12px 12px",
     borderRadius: 12,
-    border: "1px solid rgba(148,163,184,0.22)",
-    background: "rgba(2, 6, 23, 0.35)",
-    color: "#e5e7eb",
+    border: "1px solid rgba(148,163,184,0.18)",
+    background: "rgba(255,255,255,0.06)",
+    color: "#e2e8f0",
     outline: "none",
   },
-  primaryBtn: {
+  primary: {
     width: "100%",
     padding: "12px 12px",
     borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.10)",
+    border: "1px solid rgba(255,255,255,0.12)",
     background: "#ffffff",
     color: "#0b1220",
-    fontWeight: 1000,
+    fontWeight: 900,
     cursor: "pointer",
   },
-  secondaryBtn: {
+  secondary: {
     width: "100%",
     padding: "12px 12px",
     borderRadius: 12,
-    border: "1px solid rgba(148,163,184,0.22)",
-    background: "rgba(2, 6, 23, 0.35)",
-    color: "#e5e7eb",
+    border: "1px solid rgba(148,163,184,0.18)",
+    background: "rgba(255,255,255,0.06)",
+    color: "#e2e8f0",
     fontWeight: 900,
   },
+
   alert: {
-    marginTop: 6,
     padding: 12,
-    borderRadius: 14,
-    border: "1px solid rgba(239,68,68,0.30)",
-    background: "rgba(239,68,68,0.10)",
+    borderRadius: 12,
+    background: "rgba(220,38,38,0.10)",
+    border: "1px solid rgba(220,38,38,0.22)",
   },
-  tip: {
-    marginTop: 4,
+  alertTitle: { fontWeight: 900, marginBottom: 6, color: "#fecaca" },
+  alertBody: { color: "#fecaca", fontSize: 12, lineHeight: 1.5 },
+
+  note: {
     padding: 12,
-    borderRadius: 14,
-    border: "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(2, 6, 23, 0.25)",
+    borderRadius: 12,
+    border: "1px solid rgba(148,163,184,0.14)",
+    background: "rgba(255,255,255,0.04)",
     color: "#cbd5e1",
     fontSize: 12,
     lineHeight: 1.5,
   },
-  empty: {
-    marginTop: 10,
-    padding: 18,
-    borderRadius: 16,
-    border: "1px dashed rgba(148,163,184,0.25)",
-    background: "rgba(2, 6, 23, 0.18)",
-  },
-  scoreRow: {
-    display: "grid",
-    gridTemplateColumns: "1.2fr 0.8fr",
-    gap: 12,
-    marginTop: 12,
-  },
-  scoreCard: {
-    borderRadius: 16,
-    border: "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(2, 6, 23, 0.25)",
-    padding: 14,
-  },
-  quickActions: {
-    borderRadius: 16,
-    border: "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(2, 6, 23, 0.25)",
-    padding: 14,
-  },
-  quickTitle: { fontWeight: 1000, marginBottom: 10 },
-  quickList: { display: "grid", gap: 10 },
-  quickItem: {
-    padding: 12,
+
+  main: { display: "grid", gap: 14 },
+  card: {
     borderRadius: 14,
-    border: "1px solid rgba(148,163,184,0.14)",
-    background: "rgba(15, 23, 42, 0.30)",
+    padding: 16,
+    background: "#f8fafc",
+    border: "1px solid rgba(15,23,42,0.10)",
   },
-  rowCard: {
-    borderRadius: 16,
-    border: "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(2, 6, 23, 0.25)",
-    padding: 14,
-  },
-  kv: {
-    display: "grid",
-    gridTemplateColumns: "90px 1fr",
-    gap: 10,
-    alignItems: "baseline",
-    marginTop: 10,
-  },
-  k: { color: "#94a3b8", fontSize: 12, fontWeight: 900 },
-  v: { color: "#e5e7eb", lineHeight: 1.4 },
-  chip: {
+  cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
+  cardTitle: { fontWeight: 900, fontSize: 14, color: "#0f172a" },
+  cardSub: { fontSize: 12, color: "#64748b", marginTop: 4, lineHeight: 1.4 },
+
+  scorePill: {
+    padding: "8px 12px",
+    borderRadius: 999,
     fontSize: 12,
     fontWeight: 900,
-    padding: "6px 10px",
-    borderRadius: 999,
-    color: "#e5e7eb",
-    border: "1px solid rgba(148,163,184,0.22)",
-    background: "rgba(15, 23, 42, 0.35)",
+    border: "1px solid rgba(15,23,42,0.10)",
+    whiteSpace: "nowrap",
   },
-  twoCol: {
+  scorePillMuted: {
+    padding: "8px 12px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 900,
+    background: "rgba(15,23,42,0.06)",
+    border: "1px solid rgba(15,23,42,0.10)",
+    color: "#475569",
+    whiteSpace: "nowrap",
+  },
+
+  empty: {
+    marginTop: 14,
+    borderRadius: 14,
+    padding: 18,
+    border: "1px dashed rgba(15,23,42,0.18)",
+    background: "rgba(15,23,42,0.02)",
+  },
+  emptyTitle: { fontWeight: 900, color: "#0f172a" },
+  emptySub: { marginTop: 8, color: "#64748b", lineHeight: 1.5, fontSize: 12 },
+
+  summaryGrid: {
+    marginTop: 14,
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns: "1fr 1fr 1fr",
     gap: 12,
   },
-  checkRow: { display: "flex", alignItems: "center", gap: 10 },
-  checkDot: {
+  summaryCard: {
+    borderRadius: 14,
+    padding: 14,
+    border: "1px solid rgba(15,23,42,0.10)",
+    background: "#ffffff",
+  },
+  kicker: { fontSize: 12, fontWeight: 900, color: "#64748b" },
+  bigText: { marginTop: 6, fontWeight: 900, color: "#0f172a" },
+  muted: { marginTop: 4, color: "#64748b", fontSize: 12 },
+
+  sectionHeader: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 },
+  sectionTitle: { fontWeight: 900, fontSize: 13, color: "#0f172a" },
+  sectionSub: { fontSize: 12, color: "#64748b" },
+
+  row: {
+    borderRadius: 14,
+    padding: 14,
+    border: "1px solid rgba(15,23,42,0.10)",
+    background: "#ffffff",
+  },
+  rowTop: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 },
+  rowTitle: { fontWeight: 900, color: "#0f172a" },
+  rowBody: { marginTop: 8, color: "#334155", fontSize: 12, lineHeight: 1.6 },
+  rowLabel: { fontWeight: 900, color: "#0f172a" },
+
+  kv: { marginTop: 10, display: "grid", gridTemplateColumns: "70px 1fr", gap: 10, alignItems: "baseline" },
+  k: { fontSize: 12, fontWeight: 900, color: "#64748b" },
+  v: { color: "#0f172a", fontSize: 12, lineHeight: 1.5 },
+
+  tags: { marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 },
+  tag: {
+    padding: "6px 10px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 800,
+    background: "rgba(15,23,42,0.06)",
+    border: "1px solid rgba(15,23,42,0.10)",
+    color: "#0f172a",
+  },
+
+  twoCol: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
+
+  check: { display: "flex", alignItems: "center", gap: 10, color: "#0f172a", fontSize: 12 },
+  dot: {
     width: 10,
     height: 10,
     borderRadius: 999,
-    background: "rgba(34,197,94,0.90)",
-    boxShadow: "0 0 0 4px rgba(34,197,94,0.12)",
-    flexShrink: 0,
+    background: "rgba(22,163,74,0.9)",
+    boxShadow: "0 0 0 4px rgba(22,163,74,0.16)",
   },
-  postCard: {
+
+  post: {
     padding: 12,
-    borderRadius: 14,
-    border: "1px solid rgba(148,163,184,0.14)",
-    background: "rgba(15, 23, 42, 0.30)",
+    borderRadius: 12,
+    border: "1px solid rgba(15,23,42,0.10)",
+    background: "rgba(15,23,42,0.02)",
   },
+
+  list: { margin: "10px 0 0", paddingLeft: 18, color: "#334155", fontSize: 12, lineHeight: 1.6 },
+  listItem: { marginBottom: 6 },
+
   footer: {
-    marginTop: 16,
     display: "flex",
     justifyContent: "space-between",
-    gap: 12,
-    color: "#64748b",
+    gap: 10,
+    padding: "0 2px",
     fontSize: 12,
-    padding: "10px 2px",
+    color: "#94a3b8",
   },
 };
